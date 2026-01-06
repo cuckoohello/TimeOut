@@ -29,11 +29,13 @@ jobs:
         run: |
           sed -i '' "s/^VERSION := .*/VERSION := ${{ steps.get_version.outputs.VERSION }}/" Makefile
       
-      - name: Build release
-        run: make package
+      - name: Build ARM64 version
+        run: make release ARCH=arm64
       
-      - name: Create ZIP archive
-        run: make zip
+      - name: Build x86_64 version
+        run: |
+          make clean-bundle
+          make release ARCH=x86_64
       
       - name: Generate release notes
         id: release_notes
@@ -42,10 +44,18 @@ jobs:
           ## TimeOut v${{ steps.get_version.outputs.VERSION }}
           
           ### Installation
-          1. Download \`TimeOut.zip\`
+          
+          **Choose the version for your Mac:**
+          - **Apple Silicon (M1/M2/M3)**: Download `TimeOut-arm64.zip`
+          - **Intel**: Download `TimeOut-x86_64.zip`
+          
+          **Steps:**
+          1. Download the appropriate ZIP file for your Mac
           2. Extract the ZIP file
-          3. Drag \`TimeOut.app\` to your \`/Applications\` folder
+          3. Drag `TimeOut.app` to your `/Applications` folder
           4. Launch TimeOut from Applications
+          
+          > **Note:** On first launch, right-click the app and select "Open" to bypass Gatekeeper (app is not code-signed).
           
           ### What's New
           See the [commit history](https://github.com/${{ github.repository }}/commits/v${{ steps.get_version.outputs.VERSION }}) for details.
@@ -53,8 +63,6 @@ jobs:
           ---
           
           **Requirements:** macOS 14.0 (Sonoma) or later
-          
-          **Note:** This app is not code-signed. On first launch, right-click the app and select "Open" to bypass Gatekeeper.
           EOF
       
       - name: Create GitHub Release
@@ -63,7 +71,8 @@ jobs:
           name: TimeOut v${{ steps.get_version.outputs.VERSION }}
           body_path: release_notes.md
           files: |
-            TimeOut.zip
+            TimeOut-arm64.zip
+            TimeOut-x86_64.zip
           draft: false
           prerelease: false
         env:
@@ -73,5 +82,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: TimeOut-v${{ steps.get_version.outputs.VERSION }}
-          path: TimeOut.zip
+          path: |
+            TimeOut-arm64.zip
+            TimeOut-x86_64.zip
           retention-days: 30

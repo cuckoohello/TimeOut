@@ -8,10 +8,15 @@ VERSION := 1.0
 BUILD_NUMBER := 1
 MIN_MACOS_VERSION := 14.0
 
+# Architecture (can be overridden: make ARCH=arm64 or make ARCH=x86_64)
+ARCH ?= $(shell uname -m)
+# Add architecture suffix when explicitly building for a specific arch
+ARCH_SUFFIX := -$(ARCH)
+
 # Directories
 BUILD_CONFIG := release
-BUILD_DIR := $(shell swift build -c $(BUILD_CONFIG) --show-bin-path 2>/dev/null || echo ".build/$(BUILD_CONFIG)")
-APP_BUNDLE := $(APP_NAME).app
+BUILD_DIR := $(shell swift build -c $(BUILD_CONFIG) --arch $(ARCH) --show-bin-path 2>/dev/null || echo ".build/$(ARCH)-apple-macosx/$(BUILD_CONFIG)")
+APP_BUNDLE := $(APP_NAME)$(ARCH_SUFFIX).app
 CONTENTS_DIR := $(APP_BUNDLE)/Contents
 MACOS_DIR := $(CONTENTS_DIR)/MacOS
 RESOURCES_DIR := $(CONTENTS_DIR)/Resources
@@ -48,9 +53,9 @@ help:
 
 ## build: Compile the Swift project in release mode
 build:
-	@echo "$(BLUE)🛠️  Building $(APP_NAME) in release mode...$(NC)"
-	@swift build -c $(BUILD_CONFIG)
-	@echo "$(GREEN)✅ Build complete!$(NC)"
+	@echo "$(BLUE)🛠️  Building $(APP_NAME) for $(ARCH) in release mode...$(NC)"
+	@swift build -c $(BUILD_CONFIG) --arch $(ARCH)
+	@echo "$(GREEN)✅ Build complete for $(ARCH)!$(NC)"
 
 ## package: Create the .app bundle
 package: build
@@ -88,15 +93,26 @@ test:
 ## zip: Create a ZIP archive of the .app bundle
 zip: package
 	@echo "$(BLUE)📦 Creating ZIP archive...$(NC)"
-	@rm -f "$(APP_NAME).zip"
-	@ditto -c -k --keepParent "$(APP_BUNDLE)" "$(APP_NAME).zip"
-	@echo "$(GREEN)✅ ZIP archive created: $(APP_NAME).zip$(NC)"
+	@rm -f "$(APP_NAME)$(ARCH_SUFFIX).zip"
+	@ditto -c -k --keepParent "$(APP_BUNDLE)" "$(APP_NAME)$(ARCH_SUFFIX).zip"
+	@echo "$(GREEN)✅ ZIP archive created: $(APP_NAME)$(ARCH_SUFFIX).zip$(NC)"
 
 ## release: Build complete release (package + zip)
 release: package zip
-	@echo "$(GREEN)🎉 Release build complete!$(NC)"
+	@echo "$(GREEN)🎉 Release build complete for $(ARCH)!$(NC)"
 	@echo "$(YELLOW)📦 App bundle: $(PWD)/$(APP_BUNDLE)$(NC)"
-	@echo "$(YELLOW)📦 ZIP archive: $(PWD)/$(APP_NAME).zip$(NC)"
+	@echo "$(YELLOW)📦 ZIP archive: $(PWD)/$(APP_NAME)$(ARCH_SUFFIX).zip$(NC)"
+
+## release-universal: Build both ARM64 and x86_64 versions
+release-universal:
+	@echo "$(BLUE)🏗️  Building universal release (ARM64 + x86_64)...$(NC)"
+	@$(MAKE) clean
+	@$(MAKE) release ARCH=arm64
+	@$(MAKE) clean-bundle
+	@$(MAKE) release ARCH=x86_64
+	@echo "$(GREEN)🎉 Universal release complete!$(NC)"
+	@echo "$(YELLOW)📦 ARM64: $(APP_NAME)-arm64.zip$(NC)"
+	@echo "$(YELLOW)📦 Intel: $(APP_NAME)-x86_64.zip$(NC)"
 
 ## clean: Remove all build artifacts and app bundle
 clean:
@@ -104,14 +120,14 @@ clean:
 	@swift package clean
 	@rm -rf .build
 	@$(MAKE) -s clean-bundle
-	@rm -f "$(APP_NAME).zip"
+	@rm -f "$(APP_NAME).zip" "$(APP_NAME)-arm64.zip" "$(APP_NAME)-x86_64.zip"
 	@echo "$(GREEN)✅ Clean complete!$(NC)"
 
 ## Internal targets (not shown in help)
 
 # Remove only the app bundle
 clean-bundle:
-	@rm -rf "$(APP_BUNDLE)"
+	@rm -rf "$(APP_NAME).app" "$(APP_NAME)-arm64.app" "$(APP_NAME)-x86_64.app"
 
 # Create the .app bundle directory structure
 create-bundle-structure:
