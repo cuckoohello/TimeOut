@@ -10,11 +10,38 @@ A native macOS break reminder app built with SwiftUI, inspired by the classic Ti
 - **Menu Bar Control**: Quick access to pause, resume, or skip breaks.
 - **Launch at Login**: Option to auto-start the app when you log in.
 
-## How to Run
-Requirements: macOS 14.0+ (Sonoma) or newer, Xcode / Swift 5.9+.
+## Build & Package
 
+**Requirements:** macOS 14.0+ (Sonoma), Swift 5.9+
+
+### Quick Start
 ```bash
+# Build and run directly
+make run
+
+# Or use Swift Package Manager
 swift run
 ```
 
-or open the folder in Xcode and press Run.
+### Create .app Bundle
+```bash
+# Package the app (creates TimeOut.app)
+make package
+
+# Install to /Applications
+make install
+```
+
+### All Available Commands
+```bash
+make help       # Show all available commands
+make build      # Build release binary
+make package    # Create .app bundle
+make install    # Install to /Applications
+make run        # Build and run
+make test       # Run tests
+make clean      # Remove build artifacts
+```
+
+### Manual Development
+Open the folder in Xcode and press Run, or use `swift run` for quick testing.
