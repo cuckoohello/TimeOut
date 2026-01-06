@@ -26,7 +26,7 @@ YELLOW := \033[0;33m
 RED := \033[0;31m
 NC := \033[0m # No Color
 
-.PHONY: all build package install clean help test run
+.PHONY: all build package install clean help test run zip release
 
 # Default target
 all: package
@@ -37,6 +37,8 @@ help:
 	@echo ""
 	@echo "  $(GREEN)make build$(NC)      - Build the release binary"
 	@echo "  $(GREEN)make package$(NC)    - Create .app bundle (default)"
+	@echo "  $(GREEN)make zip$(NC)        - Create ZIP archive for distribution"
+	@echo "  $(GREEN)make release$(NC)    - Build complete release (package + zip)"
 	@echo "  $(GREEN)make install$(NC)    - Install to /Applications"
 	@echo "  $(GREEN)make run$(NC)        - Build and run the app"
 	@echo "  $(GREEN)make clean$(NC)      - Remove build artifacts"
@@ -83,12 +85,26 @@ test:
 	@echo "$(BLUE)🧪 Running tests...$(NC)"
 	@swift test
 
+## zip: Create a ZIP archive of the .app bundle
+zip: package
+	@echo "$(BLUE)📦 Creating ZIP archive...$(NC)"
+	@rm -f "$(APP_NAME).zip"
+	@ditto -c -k --keepParent "$(APP_BUNDLE)" "$(APP_NAME).zip"
+	@echo "$(GREEN)✅ ZIP archive created: $(APP_NAME).zip$(NC)"
+
+## release: Build complete release (package + zip)
+release: package zip
+	@echo "$(GREEN)🎉 Release build complete!$(NC)"
+	@echo "$(YELLOW)📦 App bundle: $(PWD)/$(APP_BUNDLE)$(NC)"
+	@echo "$(YELLOW)📦 ZIP archive: $(PWD)/$(APP_NAME).zip$(NC)"
+
 ## clean: Remove all build artifacts and app bundle
 clean:
 	@echo "$(BLUE)🧹 Cleaning build artifacts...$(NC)"
 	@swift package clean
 	@rm -rf .build
 	@$(MAKE) -s clean-bundle
+	@rm -f "$(APP_NAME).zip"
 	@echo "$(GREEN)✅ Clean complete!$(NC)"
 
 ## Internal targets (not shown in help)

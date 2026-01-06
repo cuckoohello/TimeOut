@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0
+
+jobs:
+  build-and-release:
+    name: Build and Release macOS App
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '5.9'
+      
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Update version in Makefile
+        run: |
+          sed -i '' "s/^VERSION := .*/VERSION := ${{ steps.get_version.outputs.VERSION }}/" Makefile
+      
+      - name: Build release
+        run: make package
+      
+      - name: Create ZIP archive
+        run: make zip
+      
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          cat << EOF > release_notes.md
+          ## TimeOut v${{ steps.get_version.outputs.VERSION }}
+          
+          ### Installation
+          1. Download \`TimeOut.zip\`
+          2. Extract the ZIP file
+          3. Drag \`TimeOut.app\` to your \`/Applications\` folder
+          4. Launch TimeOut from Applications
+          
+          ### What's New
+          See the [commit history](https://github.com/${{ github.repository }}/commits/v${{ steps.get_version.outputs.VERSION }}) for details.
+          
+          ---
+          
+          **Requirements:** macOS 14.0 (Sonoma) or later
+          
+          **Note:** This app is not code-signed. On first launch, right-click the app and select "Open" to bypass Gatekeeper.
+          EOF
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: TimeOut v${{ steps.get_version.outputs.VERSION }}
+          body_path: release_notes.md
+          files: |
+            TimeOut.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TimeOut-v${{ steps.get_version.outputs.VERSION }}
+          path: TimeOut.zip
+          retention-days: 30
