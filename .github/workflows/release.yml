@@ -10,6 +10,10 @@ jobs:
     name: Build and Release macOS App
     runs-on: macos-latest
     
+    permissions:
+      contents: write  # Required to create releases
+      
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
