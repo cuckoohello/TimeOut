@@ -29,10 +29,46 @@ class BreakManager: ObservableObject {
     // For the current break
     private var currentBreakEndTime: Date?
 
+    private var cancellables = Set<AnyCancellable>()
+
     init() {
+        loadSettings()
+        
         idleMonitor.startMonitoring()
         startLoop()
         scheduleNextBreaks()
+        
+        // Auto-save when settings change
+        $microBreak
+            .debounce(for: 0.5, scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.saveSettings() }
+            .store(in: &cancellables)
+            
+        $normalBreak
+            .debounce(for: 0.5, scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.saveSettings() }
+            .store(in: &cancellables)
+    }
+    
+    private func saveSettings() {
+        if let encoded = try? JSONEncoder().encode(microBreak) {
+            UserDefaults.standard.set(encoded, forKey: "microBreakConfig")
+        }
+        if let encoded = try? JSONEncoder().encode(normalBreak) {
+            UserDefaults.standard.set(encoded, forKey: "normalBreakConfig")
+        }
+    }
+    
+    private func loadSettings() {
+        if let data = UserDefaults.standard.data(forKey: "microBreakConfig"),
+           let config = try? JSONDecoder().decode(BreakConfiguration.self, from: data) {
+            self.microBreak = config
+        }
+        
+        if let data = UserDefaults.standard.data(forKey: "normalBreakConfig"),
+           let config = try? JSONDecoder().decode(BreakConfiguration.self, from: data) {
+            self.normalBreak = config
+        }
     }
 
     private func startLoop() {
