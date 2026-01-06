@@ -12,7 +12,9 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "TimeOut",
-            path: "Sources/TimeOut"
+            resources: [
+                .process("Resources")
+            ]
         )
     ]
 )
