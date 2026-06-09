@@ -47,17 +47,7 @@ struct TimeOutApp: App {
             }
             .keyboardShortcut("q")
         } label: {
-            HStack(alignment: .center, spacing: 4) {
-                Image(systemName: "timer")
-                    .imageScale(.medium)
-
-                if showCountdownInMenuBar {
-                    Text(breakManager.menuBarCountdownText(language: language))
-                        .monospacedDigit()
-                        .fixedSize()
-                }
-            }
-            .contentShape(Rectangle())
+            MenuBarLabel(manager: breakManager)
         }
         .onChange(of: breakManager.state) { oldState, newState in
             if newState.showsOverlay && !oldState.showsOverlay {
@@ -172,6 +162,51 @@ struct TimeOutApp: App {
     }
 }
 
+private struct MenuBarLabel: View {
+    @ObservedObject var manager: BreakManager
+    @StateObject private var clock = MenuBarClock()
+    @AppStorage("showCountdownInMenuBar") private var showCountdownInMenuBar = false
+    @AppStorage("appLanguage") private var appLanguageRawValue = AppLanguage.current.rawValue
+
+    private var language: AppLanguage {
+        AppLanguage(rawValue: appLanguageRawValue) ?? .english
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 4) {
+            Image(systemName: "timer")
+                .imageScale(.medium)
+
+            if showCountdownInMenuBar {
+                Text(manager.menuBarCountdownText(now: clock.now, language: language))
+                    .monospacedDigit()
+                    .fixedSize()
+            }
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+@MainActor
+private final class MenuBarClock: ObservableObject {
+    @Published var now = Date()
+    private var timer: Timer?
+
+    init() {
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.now = Date()
+            }
+        }
+        self.timer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    deinit {
+        timer?.invalidate()
+    }
+}
+
 // Ensure singleton access for BreakManager if needed, or just pass instance.
 // Since we pass it in showSettings, we don't strictly need singleton, 
 // BUT we need to ensure the SettingsView observes the SAME instance.
@@ -215,9 +250,9 @@ extension BreakManager {
 private extension BreakState {
     var showsOverlay: Bool {
         switch self {
-        case .preparing, .inBreak:
+        case .inBreak:
             return true
-        case .working, .idle:
+        case .preparing, .working, .idle:
             return false
         }
     }

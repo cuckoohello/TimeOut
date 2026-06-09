@@ -738,6 +738,24 @@ class BreakManager: ObservableObject {
         if isPaused { return L10n.text("Paused", "已暂停", language: language) }
         if !isWithinActiveSchedule(now: now) { return L10n.text("Inactive: Schedule", "未启用：计划外", language: language) }
 
+        if case .preparing(let config) = state {
+            let remaining = max(0, (preparationEndTime ?? now).timeIntervalSince(now))
+            return L10n.text(
+                "\(localizedBreakName(config, language: .english)) break starts in \(formatDuration(remaining))",
+                "\(localizedBreakName(config, language: .chinese))将在 \(formatDuration(remaining)) 后开始",
+                language: language
+            )
+        }
+
+        if case .inBreak(let config) = state {
+            let remaining = max(0, (currentBreakEndTime ?? now).timeIntervalSince(now))
+            return L10n.text(
+                "\(localizedBreakName(config, language: .english)) break: \(formatDuration(remaining)) left",
+                "\(localizedBreakName(config, language: .chinese))剩余 \(formatDuration(remaining))",
+                language: language
+            )
+        }
+
         guard let nextBreakTime else {
             return L10n.text("Next break: disabled", "下一次休息：已禁用", language: language)
         }
@@ -752,6 +770,16 @@ class BreakManager: ObservableObject {
     func menuBarCountdownText(now: Date = Date(), language: AppLanguage = .current) -> String {
         if isPaused { return L10n.text("Paused", "暂停", language: language) }
         if !isWithinActiveSchedule(now: now) { return L10n.text("Off", "关闭", language: language) }
+
+        if case .preparing = state {
+            let remaining = max(0, (preparationEndTime ?? now).timeIntervalSince(now))
+            return formatDuration(remaining)
+        }
+
+        if case .inBreak = state {
+            let remaining = max(0, (currentBreakEndTime ?? now).timeIntervalSince(now))
+            return formatDuration(remaining)
+        }
 
         guard let nextBreakTime else {
             return "--"
