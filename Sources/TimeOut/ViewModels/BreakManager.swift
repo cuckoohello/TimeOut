@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import AppKit
 import UserNotifications
+import UniformTypeIdentifiers
 
 enum FullScreenBreakBehavior: String, CaseIterable, Identifiable, Codable {
     case allow
@@ -32,6 +33,20 @@ struct ExcludedApplication: Identifiable, Equatable, Codable {
     var bundleIdentifier: String
 
     var id: String { bundleIdentifier }
+
+    var icon: NSImage {
+        if let runningIcon = NSWorkspace.shared.runningApplications
+            .first(where: { $0.bundleIdentifier == bundleIdentifier })?
+            .icon {
+            return runningIcon
+        }
+
+        if let applicationURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) {
+            return NSWorkspace.shared.icon(forFile: applicationURL.path)
+        }
+
+        return NSWorkspace.shared.icon(for: .applicationBundle)
+    }
 }
 
 struct DailyBreakStats: Equatable, Codable {
@@ -72,7 +87,7 @@ class BreakManager: ObservableObject {
         didSet { saveGeneralSettings() }
     }
     @Published var excludedApplications: [ExcludedApplication] = [] {
-        didSet { saveGeneralSettings() }
+        didSet { saveExcludedApplications() }
     }
     @Published var notifyBeforeNormalBreak: Bool = true {
         didSet { saveGeneralSettings(); requestNotificationAuthorizationIfNeeded() }
@@ -209,8 +224,16 @@ class BreakManager: ObservableObject {
         UserDefaults.standard.set(scheduleWeekdaysOnly, forKey: "scheduleWeekdaysOnly")
         UserDefaults.standard.set(scheduleStartMinutes, forKey: "scheduleStartMinutes")
         UserDefaults.standard.set(scheduleEndMinutes, forKey: "scheduleEndMinutes")
+        saveExcludedApplications()
+    }
+
+    private func saveExcludedApplications(flushImmediately: Bool = false) {
         if let encoded = try? JSONEncoder().encode(excludedApplications) {
             UserDefaults.standard.set(encoded, forKey: "excludedApplications")
+        }
+
+        if flushImmediately {
+            UserDefaults.standard.synchronize()
         }
     }
 
@@ -902,10 +925,12 @@ class BreakManager: ObservableObject {
         guard !excludedApplications.contains(where: { $0.bundleIdentifier == application.bundleIdentifier }) else { return }
         excludedApplications.append(application)
         excludedApplications.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        saveExcludedApplications(flushImmediately: true)
     }
 
     func removeExcludedApplication(_ application: ExcludedApplication) {
         excludedApplications.removeAll { $0.bundleIdentifier == application.bundleIdentifier }
+        saveExcludedApplications(flushImmediately: true)
     }
 
     private func activeExcludedApplication() -> ExcludedApplication? {

@@ -186,8 +186,14 @@ struct SettingsView: View {
                         Text(t("No running apps available", "没有可添加的运行中应用"))
                     } else {
                         ForEach(applications) { application in
-                            Button(application.name) {
+                            Button {
                                 manager.addExcludedApplication(application)
+                            } label: {
+                                Label {
+                                    Text(application.name)
+                                } icon: {
+                                    Image(nsImage: application.icon)
+                                }
                             }
                         }
                     }
@@ -201,9 +207,10 @@ struct SettingsView: View {
                     VStack(spacing: 8) {
                         ForEach(manager.excludedApplications) { application in
                             HStack(spacing: 12) {
-                                Image(systemName: "app.dashed")
-                                    .foregroundColor(.secondary)
-                                    .frame(width: 24)
+                                Image(nsImage: application.icon)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 28, height: 28)
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(application.name)
