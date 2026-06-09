@@ -3,43 +3,70 @@ import SwiftUI
 
 @MainActor
 class OverlayWindowManager: ObservableObject {
-    var overlayWindow: NSWindow?
+    private var overlayWindows: [NSWindow] = []
     
     func showOverlay(manager: BreakManager) {
-        if overlayWindow == nil {
-            let window = NSWindow(
-                contentRect: NSScreen.main?.frame ?? .zero,
-                styleMask: [.borderless, .fullSizeContentView],
-                backing: .buffered,
-                defer: false
-            )
-            
-            window.isOpaque = false
-            window.backgroundColor = .clear
-            window.level = .floating // Stays on top
-            // To cover everything including menu bar (sometimes requires .screenSaver level)
-            window.level = .screenSaver 
-            
-            window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-            
-            // Allow interactions
-            window.ignoresMouseEvents = false
-            
-            window.contentView = NSHostingView(rootView: OverlayView(manager: manager))
-            
-            self.overlayWindow = window
+        rebuildWindowsIfNeeded(manager: manager)
+
+        for window in overlayWindows {
+            window.alphaValue = 0
+            window.makeKeyAndOrderFront(nil)
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.35
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                window.animator().alphaValue = 1
+            }
         }
-        
-        // Update frame in case of screen changes (simple MVP)
-        if let screen = NSScreen.main {
-            overlayWindow?.setFrame(screen.frame, display: true)
-        }
-        
-        overlayWindow?.makeKeyAndOrderFront(nil)
+
         NSApp.activate(ignoringOtherApps: true)
     }
     
     func hideOverlay() {
-        overlayWindow?.orderOut(nil)
+        let windows = overlayWindows
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.25
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            for window in windows {
+                window.animator().alphaValue = 0
+            }
+        } completionHandler: {
+            for window in windows {
+                window.orderOut(nil)
+            }
+        }
+    }
+
+    private func rebuildWindowsIfNeeded(manager: BreakManager) {
+        let screens = NSScreen.screens
+        guard !screens.isEmpty else { return }
+
+        if overlayWindows.count != screens.count {
+            overlayWindows.forEach { $0.close() }
+            overlayWindows = screens.map { screen in
+                makeWindow(for: screen, manager: manager)
+            }
+        }
+
+        for (window, screen) in zip(overlayWindows, screens) {
+            window.setFrame(screen.frame, display: true)
+            window.contentView = NSHostingView(rootView: OverlayView(manager: manager))
+        }
+    }
+
+    private func makeWindow(for screen: NSScreen, manager: BreakManager) -> NSWindow {
+        let window = NSWindow(
+            contentRect: screen.frame,
+            styleMask: [.borderless, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.level = .screenSaver
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        window.ignoresMouseEvents = false
+        window.contentView = NSHostingView(rootView: OverlayView(manager: manager))
+        return window
     }
 }
