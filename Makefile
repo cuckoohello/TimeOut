@@ -17,6 +17,7 @@ ARCH_SUFFIX := -$(ARCH)
 BUILD_CONFIG := release
 BUILD_DIR := $(shell swift build -c $(BUILD_CONFIG) --arch $(ARCH) --show-bin-path 2>/dev/null || echo ".build/$(ARCH)-apple-macosx/$(BUILD_CONFIG)")
 APP_BUNDLE := $(APP_NAME)$(ARCH_SUFFIX).app
+INSTALL_APP_BUNDLE := $(APP_NAME).app
 CONTENTS_DIR := $(APP_BUNDLE)/Contents
 MACOS_DIR := $(CONTENTS_DIR)/MacOS
 RESOURCES_DIR := $(CONTENTS_DIR)/Resources
@@ -71,12 +72,13 @@ package: build
 
 ## install: Install the app to /Applications
 install: package
-	@echo "$(BLUE)📥 Installing $(APP_NAME) to /Applications...$(NC)"
-	@if [ -d "/Applications/$(APP_BUNDLE)" ]; then \
+	@echo "$(BLUE)📥 Installing $(INSTALL_APP_BUNDLE) to /Applications...$(NC)"
+	@if [ -d "/Applications/$(INSTALL_APP_BUNDLE)" ]; then \
 		echo "$(YELLOW)⚠️  Removing existing installation...$(NC)"; \
-		rm -rf "/Applications/$(APP_BUNDLE)"; \
+		rm -rf "/Applications/$(INSTALL_APP_BUNDLE)"; \
 	fi
-	@cp -R "$(APP_BUNDLE)" /Applications/
+	@rm -rf "/Applications/$(APP_NAME)-arm64.app" "/Applications/$(APP_NAME)-x86_64.app"
+	@ditto "$(APP_BUNDLE)" "/Applications/$(INSTALL_APP_BUNDLE)"
 	@echo "$(GREEN)✅ Installation complete!$(NC)"
 	@echo "$(YELLOW)🚀 You can now launch $(APP_NAME) from /Applications$(NC)"
 
