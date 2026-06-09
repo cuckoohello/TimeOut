@@ -60,9 +60,7 @@ struct TimeOutApp: App {
 
     @ViewBuilder
     private var statusSection: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            Label(breakManager.nextBreakStatusText(now: context.date, language: language), systemImage: statusIcon)
-        }
+        Label(dropdownStatusText, systemImage: statusIcon)
         if let ruleStatus = breakManager.ruleStatus {
             Label(ruleStatus, systemImage: "info.circle")
         }
@@ -154,6 +152,26 @@ struct TimeOutApp: App {
         case .preparing: return "hourglass"
         case .inBreak: return "figure.mind.and.body"
         case .idle: return "moon"
+        }
+    }
+
+    private var dropdownStatusText: String {
+        if breakManager.isPaused {
+            return t("Paused", "已暂停")
+        }
+
+        switch breakManager.state {
+        case .working:
+            if let nextBreakTime = breakManager.nextBreakTime {
+                return "\(t("Next break at", "下一次休息时间")): \(nextBreakTime.formatted(date: .omitted, time: .shortened))"
+            }
+            return t("Next break: disabled", "下一次休息：已禁用")
+        case .preparing:
+            return t("Break starts soon", "休息即将开始")
+        case .inBreak:
+            return t("Break in progress", "正在休息")
+        case .idle:
+            return t("Idle", "空闲")
         }
     }
 
