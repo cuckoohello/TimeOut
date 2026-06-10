@@ -350,6 +350,15 @@ struct SettingsView: View {
                         .lineLimit(2...4)
                         .textFieldStyle(.roundedBorder)
                 }
+
+                Divider()
+
+                Picker(t("Display mode", "显示模式"), selection: config.displayMode) {
+                    ForEach(BreakDisplayMode.allCases) { mode in
+                        Text(mode.title(language: language)).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
             }
         }
     }

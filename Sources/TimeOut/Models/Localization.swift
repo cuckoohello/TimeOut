@@ -33,6 +33,15 @@ enum L10n {
     }
 }
 
+extension BreakDisplayMode {
+    func title(language: AppLanguage = .current) -> String {
+        switch self {
+        case .fullscreen: L10n.text("Fullscreen", "全屏", language: language)
+        case .compact: L10n.text("Compact", "紧凑", language: language)
+        }
+    }
+}
+
 extension BreakTheme {
     func title(language: AppLanguage = .current) -> String {
         switch self {

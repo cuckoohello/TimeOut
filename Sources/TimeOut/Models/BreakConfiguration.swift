@@ -1,5 +1,12 @@
 import Foundation
 
+enum BreakDisplayMode: String, CaseIterable, Identifiable, Codable {
+    case fullscreen
+    case compact
+
+    var id: String { rawValue }
+}
+
 enum BreakTheme: String, CaseIterable, Identifiable, Codable {
     case timer
     case breathing
@@ -39,6 +46,7 @@ struct BreakConfiguration: Identifiable, Equatable, Codable {
     var resetOnIdle: Bool = true
     var idleThreshold: TimeInterval = 300 // 5 minutes default
     var theme: BreakTheme = .timer
+    var displayMode: BreakDisplayMode = .fullscreen
     var customMessage: String = ""
 
     init(
@@ -50,6 +58,7 @@ struct BreakConfiguration: Identifiable, Equatable, Codable {
         resetOnIdle: Bool = true,
         idleThreshold: TimeInterval = 300,
         theme: BreakTheme = .timer,
+        displayMode: BreakDisplayMode = .fullscreen,
         customMessage: String = ""
     ) {
         self.id = id
@@ -60,6 +69,7 @@ struct BreakConfiguration: Identifiable, Equatable, Codable {
         self.resetOnIdle = resetOnIdle
         self.idleThreshold = idleThreshold
         self.theme = theme
+        self.displayMode = displayMode
         self.customMessage = customMessage
     }
 
@@ -72,6 +82,7 @@ struct BreakConfiguration: Identifiable, Equatable, Codable {
         case resetOnIdle
         case idleThreshold
         case theme
+        case displayMode
         case customMessage
     }
 
@@ -85,6 +96,7 @@ struct BreakConfiguration: Identifiable, Equatable, Codable {
         resetOnIdle = try container.decodeIfPresent(Bool.self, forKey: .resetOnIdle) ?? true
         idleThreshold = try container.decodeIfPresent(TimeInterval.self, forKey: .idleThreshold) ?? 300
         theme = try container.decodeIfPresent(BreakTheme.self, forKey: .theme) ?? BreakConfiguration.defaultTheme(for: name)
+        displayMode = try container.decodeIfPresent(BreakDisplayMode.self, forKey: .displayMode) ?? .fullscreen
         customMessage = try container.decodeIfPresent(String.self, forKey: .customMessage) ?? ""
     }
 
@@ -97,7 +109,8 @@ struct BreakConfiguration: Identifiable, Equatable, Codable {
         interval: 15 * 60, // 15 mins
         duration: 15,      // 15 secs
         idleThreshold: 120, // 2 mins
-        theme: .eyeRest
+        theme: .eyeRest,
+        displayMode: .compact
     )
 
     static let defaultNormal = BreakConfiguration(
@@ -105,6 +118,7 @@ struct BreakConfiguration: Identifiable, Equatable, Codable {
         interval: 60 * 60, // 1 hour
         duration: 10 * 60, // 10 mins
         idleThreshold: 600, // 10 mins
-        theme: .stretch
+        theme: .stretch,
+        displayMode: .fullscreen
     )
 }
